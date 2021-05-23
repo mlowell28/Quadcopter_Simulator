@@ -33,10 +33,10 @@ class Quadcopter():
         self.b = b
         
         self.state = np.zeros(12)
-        self.state[0:3] = self.starting_state['position']
-        self.state[3:6] = self.starting_state['linear_rate']
-        self.state[6:9] = self.starting_state['orientation']
-        self.state[9:12] = self.starting_state['angular_rate']
+        self.state[0:3] = starting_state['position']
+        self.state[3:6] = starting_state['linear_rate']
+        self.state[6:9] = starting_state['orientation']
+        self.state[9:12] = starting_state['angular_rate']
         
   
         self.ode =  scipy.integrate.ode(self.state_dot).set_integrator('vode',nsteps=500,method='bdf')
@@ -105,7 +105,7 @@ class Quadcopter():
 
         # The derivative of the angular velocity vector 
         tau = np.array([self.parameters['L']*(self.m1.thrust-self.m3.thrust), self.parameters['L']*(self.m2.thrust-self.m4.thrust), self.b*(self.m1.thrust-self.m2.thrust+self.m3.thrust-self.m4.thrust)])
-        omega_dot = np.dot(self.Inv, (tau - np.cross(omega, np.dot(self.I,omega))))
+        omega_dot = np.dot(self.Iinv, (tau - np.cross(omega, np.dot(self.I,omega))))
         
         state_dot[9:12] = omega_dot
 
@@ -119,6 +119,8 @@ class Quadcopter():
         self.state[6:9] = self.wrap_angle(self.state[6:9])
         self.state[2] = max(0,self.state[2])
         self.t = self.t+dt
+        
+        return [self.state, self.t]
 
     def set_motor_speeds(self,speeds):
         self.m1.set_speed(speeds[0])
@@ -155,6 +157,9 @@ class Quadcopter():
 
     def get_time(self):
         return self.time
+    
+    def get_target_path(self):
+        return self.controller.get_target_path()
 
 
 

@@ -18,7 +18,7 @@ class GUI():
         self.ax.set_zlabel('Z')
         self.ax.set_title('Quadcopter Simulation')
         self.init_plot()
-        self.fig.canvas.mpl_connect('key_press_event', self.keypress_routine)
+        #self.fig.canvas.mpl_connect('key_press_event', self.keypress_routine)
 
     def rotation_matrix(self,angles):
         ct = math.cos(angles[0])
@@ -56,25 +56,25 @@ class GUI():
             self.quads[key]['hub'].set_3d_properties(points[2,5])
         plt.pause(0.000000000000001)
 
-    def keypress_routine(self,event):
-        sys.stdout.flush()
-        if event.key == 'x':
-            y = list(self.ax.get_ylim3d())
-            y[0] += 0.2
-            y[1] += 0.2
-            self.ax.set_ylim3d(y)
-        elif event.key == 'w':
-            y = list(self.ax.get_ylim3d())
-            y[0] -= 0.2
-            y[1] -= 0.2
-            self.ax.set_ylim3d(y)
-        elif event.key == 'd':
-            x = list(self.ax.get_xlim3d())
-            x[0] += 0.2
-            x[1] += 0.2
-            self.ax.set_xlim3d(x)
-        elif event.key == 'a':
-            x = list(self.ax.get_xlim3d())
-            x[0] -= 0.2
-            x[1] -= 0.2
-            self.ax.set_xlim3d(x)
+    # def keypress_routine(self,event):
+    #     sys.stdout.flush()
+    #     if event.key == 'x':
+    #         y = list(self.ax.get_ylim3d())
+    #         y[0] += 0.2
+    #         y[1] += 0.2
+    #         self.ax.set_ylim3d(y)
+    #     elif event.key == 'w':
+    #         y = list(self.ax.get_ylim3d())
+    #         y[0] -= 0.2
+    #         y[1] -= 0.2
+    #         self.ax.set_ylim3d(y)
+    #     elif event.key == 'd':
+    #         x = list(self.ax.get_xlim3d())
+    #         x[0] += 0.2
+    #         x[1] += 0.2
+    #         self.ax.set_xlim3d(x)
+    #     elif event.key == 'a':
+    #         x = list(self.ax.get_xlim3d())
+    #         x[0] -= 0.2
+    #         x[1] -= 0.2
+    #         self.ax.set_xlim3d(x)
