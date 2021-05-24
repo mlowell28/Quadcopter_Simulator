@@ -22,7 +22,7 @@ class LQR_Controller():
         
         self.quad = quadcopter
         self.connect_motors(quadcopter.m1, quadcopter.m2, quadcopter.m3, quadcopter.m4)   
-        self.controller.motor_limits = quadcopter.motor_limits
+        self.motor_limits = quadcopter.parameters['motor_limits']
         self.compute_feedback_matrix()
 
     def compute_feedback_matrix(self):
@@ -44,7 +44,7 @@ class LQR_Controller():
         
         # [x y z, x_dot y_dot z_dot, theta phi gamma, omega_1, omega_2, omega_3]
         self.x_0_state = [0,0,0,0,0,0,0,0,0,0,0,0]
-        self.A, self.B = self.compute_linearization(self, self.x_0_state, self.u_0_state)
+        self.A, self.B = self.compute_linearization(self.x_0_state, self.u_0_state)
         
        #compute LQR gain
         
@@ -58,9 +58,9 @@ class LQR_Controller():
     def compute_linearization(self, state_0, input_0, perturbation_value = .01):
         
         # average finite difference from left and right
-        jacobian = np.zeros((16,16))
+        jacobian = np.zeros((12,16))
         
-        for i in range(12):
+        for i in range(16):
             
             perturbation_array = np.zeros(12+4)
             perturbation_array[i] = perturbation_value
@@ -68,7 +68,7 @@ class LQR_Controller():
             f_i_plus = self.quad.state_dot(state_0 + perturbation_array[0:12], input_0 + perturbation_array[12:16])  
             f_i_minus = self.quad.state_dot(state_0 - perturbation_array[0:12], input_0 - perturbation_array[12:16])
             
-            df_i = np.transpose((f_i_plus - f_i_minus)/(2*perturbation_value)) 
+            df_i = np.transpose((f_i_plus + f_i_minus)/(2*perturbation_value)) 
             
             jacobian[:, i] = df_i
             
@@ -95,7 +95,7 @@ class LQR_Controller():
         
         target_state = [x_t, y_t, z_t, 0, 0, 0, 0, 0, yaw, 0, 0, 0]
         
-        [u1, u2, u3, u4] = [self.K*(state - target_state)]
+        [u1, u2, u3, u4] = np.clip([self.K*(state - target_state)],self.motor_limits[0], self.motor_limits[1])
         
         self.m1.set_speed(u1)
         self.m2.set_speed(u2)

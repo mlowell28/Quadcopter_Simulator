@@ -17,7 +17,6 @@ def simulate():
     print("starting simulation loop")
     
     # define quadcopter parameters and starting position 
-    gravity = 
     q1_parameters = {'L':0.3,'r':0.1,'prop_parameters':[10,4.5],'weight':1.2, 'motor_limits':[4000,9000]}
     q1_starting_state = {'position':np.array([0,0,20]), 'linear_rate':np.array([0,0,0]), 'orientation':np.array([0,0,0]), 'angular_rate':np.array([0,0,0])}
     
@@ -31,9 +30,13 @@ def simulate():
     
     mypath = Path([waypoint_1, waypoint_2, waypoint_3])
     
-    # define controller and quadcopter
+    # define LQR cost matrix
     
-    q1_controller = LQR_Controller(mypath, controller_parameters)
+    Q = np.diag([10,10,10,10,10,10,10,10,10,10,10,10])
+    R = np.diag([0,0,0,0])
+    
+    q1_controller = LQR_Controller(mypath, Q, R)
+    
     q1_quadcopter = Quadcopter(q1_parameters, q1_starting_state, q1_controller)
     
     #GUI expects list of quadcopters as input 
