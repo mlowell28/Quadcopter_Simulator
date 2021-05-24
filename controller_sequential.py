@@ -18,26 +18,35 @@ class LQR_Controller():
         self.Q = Q
         self.R = R
         
-        x_0_state = [0,0,0,0,0,0,0,0,0,0,0,0,]
-        u_0_state = [0,0,0,0]
-        
-        
     def add_quadcopter(self, quadcopter):
         
         self.quad = quadcopter
         self.connect_motors(quadcopter.m1, quadcopter.m2, quadcopter.m3, quadcopter.m4)   
         self.controller.motor_limits = quadcopter.motor_limits
+        self.compute_feedback_matrix()
+
+    def compute_feedback_matrix(self):
         
-        self.compute_gains()
         
+        # want equilbrium_point at hover, so motors must offset gravity while
+        # producing no torque 
         
-    def compute_gains(self):
+        F_g = self.quad.g*self.quad.parameters['weight'] 
+        F_m = 1/4*F_g
         
-        # want equilbrium_point
+        m_s = self.m1.get_speed(F_m)
         
-        [self.A, self.B] = self.compute_linearization(self, x_0_state, u_0_state)
+        self.u_0_state = [m_s, m_s, m_s, m_s]
         
-        #compute LQR gain
+        # we can always translate hovering helicopter to any position and yaw
+        # angle and assuming hovering this will not alter behavior
+        # thus we can assume default state and feed difference into matrix
+        
+        # [x y z, x_dot y_dot z_dot, theta phi gamma, omega_1, omega_2, omega_3]
+        self.x_0_state = [0,0,0,0,0,0,0,0,0,0,0,0]
+        self.A, self.B = self.compute_linearization(self, self.x_0_state, self.u_0_state)
+        
+       #compute LQR gain
         
         K, S, E = control.lqr(self.A, self.B, self.Q, self.R)
         
@@ -48,18 +57,18 @@ class LQR_Controller():
         
     def compute_linearization(self, state_0, input_0, perturbation_value = .01):
         
+        # average finite difference from left and right
         jacobian = np.zeros((16,16))
-        f_0 = self.quad.state_dot(0, state_0, input_0)
         
         for i in range(12):
             
             perturbation_array = np.zeros(12+4)
             perturbation_array[i] = perturbation_value
         
-            f_i_plus = self.quad.state_dot(state_0 + perturbation_array[0:4], input_0 + perturbatino_array[4:12])
-            f_i_minus = simulated_quad.state_dot_input(state_0 - perturbation_array[0:4], input_0 - perturbatino_array[4:12])
+            f_i_plus = self.quad.state_dot(state_0 + perturbation_array[0:12], input_0 + perturbation_array[12:16])  
+            f_i_minus = self.quad.state_dot(state_0 - perturbation_array[0:12], input_0 - perturbation_array[12:16])
             
-            df_i = np.transpose((f_i_plus - f_0 + f_i_0 - f_i_minus)/(2*perturbation_value)) 
+            df_i = np.transpose((f_i_plus - f_i_minus)/(2*perturbation_value)) 
             
             jacobian[:, i] = df_i
             
@@ -82,7 +91,7 @@ class LQR_Controller():
         
     def update(self, t, state):
         
-        [x_t, y_t, z_t, yaw] = path(t)
+        [x_t, y_t, z_t, yaw] = self.path(t)
         
         target_state = [x_t, y_t, z_t, 0, 0, 0, 0, 0, yaw, 0, 0, 0]
         

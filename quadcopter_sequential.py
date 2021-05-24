@@ -27,11 +27,19 @@ class Propeller():
         else:       
 
             thrust = 4.392e-8 * speed * math.pow(self.dia,3.5)/(math.sqrt(self.pitch))
-            thrust = thrust*(4.23e-4 * self.speed * self.pitch)
+            thrust = thrust*(4.23e-4 * speed * self.pitch)
+            
             if self.thrust_unit == 'Kg':
                 self.thrust = self.thrust*0.101972
                 
             return thrust
+        
+    def get_speed(self, thrust= None):
+        
+        if thrust == None:
+            return self.speed     
+        speed = math.sqrt(thrust/(4.392e-8  * math.pow(self.dia,3.5)/(math.sqrt(self.pitch))*(4.23e-4*self.pitch)))
+        return speed
                           
 
 class Quadcopter():
@@ -112,7 +120,6 @@ class Quadcopter():
             m2_thrust = self.m2.get_thrust(control_input[1])
             m3_thrust = self.m3.get_thrust(control_input[2])
             m4_thrust = self.m4.get_thrust(control_input[3])
-        
         
         state_dot = np.zeros(12)
         # The velocities(t+1 x_dots equal the t x_dots)
