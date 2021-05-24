@@ -35,6 +35,7 @@ class LQR_Controller():
         F_m = 1/4*F_g
         
         m_s = self.m1.get_speed(F_m)
+        thru = self.m1.get_thrust(m_s)
         
         self.u_0_state = [m_s, m_s, m_s, m_s]
         
@@ -59,16 +60,15 @@ class LQR_Controller():
         
         # average finite difference from left and right
         jacobian = np.zeros((12,16))
-        
         for i in range(16):
             
             perturbation_array = np.zeros(12+4)
             perturbation_array[i] = perturbation_value
         
-            f_i_plus = self.quad.state_dot(state_0 + perturbation_array[0:12], input_0 + perturbation_array[12:16])  
-            f_i_minus = self.quad.state_dot(state_0 - perturbation_array[0:12], input_0 - perturbation_array[12:16])
+            f_i_plus = self.quad.state_dot(0, state_0 + perturbation_array[0:12], input_0 + perturbation_array[12:16])  
+            f_i_minus = self.quad.state_dot(0, state_0 - perturbation_array[0:12], input_0 - perturbation_array[12:16])
             
-            df_i = np.transpose((f_i_plus + f_i_minus)/(2*perturbation_value)) 
+            df_i = np.transpose((f_i_plus - f_i_minus)/(2*perturbation_value)) 
             
             jacobian[:, i] = df_i
             
@@ -91,7 +91,7 @@ class LQR_Controller():
         
     def update(self, t, state):
         
-        [x_t, y_t, z_t, yaw] = self.path(t)
+        [x_t, y_t, z_t], yaw = self.path.target_position(t)
         
         target_state = [x_t, y_t, z_t, 0, 0, 0, 0, 0, yaw, 0, 0, 0]
         

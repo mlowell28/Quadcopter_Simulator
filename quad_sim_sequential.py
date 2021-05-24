@@ -32,11 +32,12 @@ def simulate():
     
     # define LQR cost matrix
     
-    Q = np.diag([10,10,10,10,10,10,10,10,10,10,10,10])
-    R = np.diag([0,0,0,0])
+    Q = np.diag([11,13,15,15,6,3,7,8,2,14,17,1])
+    R = np.diag([1,2,3,4])
+    
+    # create controller and quadcopter
     
     q1_controller = LQR_Controller(mypath, Q, R)
-    
     q1_quadcopter = Quadcopter(q1_parameters, q1_starting_state, q1_controller)
     
     #GUI expects list of quadcopters as input 

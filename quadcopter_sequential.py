@@ -106,9 +106,9 @@ class Quadcopter():
     def wrap_angle(self,val):
         return( ( val + np.pi) % (2 * np.pi ) - np.pi )
 
-    def state_dot(self, t, state, control_input = None):
+    def state_dot(self, t, state = [], control_input = []):
         
-        if control_input == None:
+        if len(control_input) == 0:
             m1_thrust = self.m1.thrust
             m2_thrust = self.m2.thrust
             m3_thrust = self.m3.thrust
@@ -120,20 +120,25 @@ class Quadcopter():
             m2_thrust = self.m2.get_thrust(control_input[1])
             m3_thrust = self.m3.get_thrust(control_input[2])
             m4_thrust = self.m4.get_thrust(control_input[3])
+            
+        if len(state) == 0:
+            
+            state = self.state
+            
         
         state_dot = np.zeros(12)
         # The velocities(t+1 x_dots equal the t x_dots)
-        state_dot[0] = self.state[3]
-        state_dot[1] = self.state[4]
-        state_dot[2] = self.state[5]
-        # The acceleration
-        x_dotdot = np.array([0,0,-self.parameters['weight']*self.g]) + np.dot(self.rotation_matrix(self.state[6:9]),np.array([0,0,(m1_thrust + m2_thrust + m3_thrust + m4_thrust)]))/self.parameters['weight']
+        state_dot[0] = state[3]
+        state_dot[1] = state[4]
+        state_dot[2] = state[5]
+        # 
+        x_dotdot = (np.array([0,0,-self.g*self.parameters['weight']]) + np.dot(self.rotation_matrix(state[6:9]),np.array([0,0,(m1_thrust + m2_thrust + m3_thrust + m4_thrust)])))/self.parameters['weight']
         state_dot[3] = x_dotdot[0]
         state_dot[4] = x_dotdot[1]
         state_dot[5] = x_dotdot[2]
 
-        euler_angles = self.state[6:9]
-        omega = self.state[9:12]
+        euler_angles = state[6:9]
+        omega = state[9:12]
 
         # relate euler angle derivative to euler and angular velocity vector
         
