@@ -3,61 +3,60 @@ import math
 import random
 import quadcopter_sequential
 from scipy import interpolate
-
+import control
 
 
 
 class LQR_Controller():
     
-    def __init__(self, path, quadcopter_params, controller_params): 
+    def __init__(self, path, Q, R): 
         
         # F = m*a, feed-forward thrust to offset gravity = F/4, 
         
         self.path = path 
-        self.simulated_quad = quadcopter()
         
-        self.control_point_spacing = controller_params['control_point_spacing']
-        self.control_point_horizon = controller_params['control_point_horizon']
-        self.dt = controller_params['system_tick']
-        
-        self.u_1_control_point = np.zeros(self.control_point_horizon)
-        self.u_2_control_point = np.zeros(self.control_point_horizon)
-        self.u_3_control_point = np.zeros(self.control_point_horizon)
-        self.u_4_control_point = np.zeros(self.control_point_horizon)
-        
-        self.t_span = np.linspace(0, control_point_spacing*dt*control_point_horizon, control_point_horizon)
-        
-        self.u1 = None
-        self.u2 = None
-        self.u3 = None
-        self.u4 = None
+        self.Q = Q
+        self.R = R
         
         x_0_state = [0,0,0,0,0,0,0,0,0,0,0,0,]
         u_0_state = [0,0,0,0]
         
-        # compute linearized model with constant feed-forward term to counter gravity 
         
-        [self.A, self.B] = compute_linearization(self, x_0_state, u_0_state)
+    def add_quadcopter(self, quadcopter):
         
-        #compute LQR gain 
+        self.quad = quadcopter
+        self.connect_motors(quadcopter.m1, quadcopter.m2, quadcopter.m3, quadcopter.m4)   
+        self.controller.motor_limits = quadcopter.motor_limits
         
-        # self.MOTOR_LIMITS = params['Motor_limits']
-        # self.TILT_LIMITS = [(params['Tilt_limits'][0]/180.0)*3.14,(params['Tilt_limits'][1]/180.0)*3.14]
-        # self.YAW_CONTROL_LIMITS = params['Yaw_Control_Limits']
+        self.compute_gains()
         
-        # self.Z_LIMITS = [self.MOTOR_LIMITS[0]+params['Z_XY_offset'],self.MOTOR_LIMITS[1]-params['Z_XY_offset']]
+        
+    def compute_gains(self):
+        
+        # want equilbrium_point
+        
+        [self.A, self.B] = self.compute_linearization(self, x_0_state, u_0_state)
+        
+        #compute LQR gain
+        
+        K, S, E = control.lqr(self.A, self.B, self.Q, self.R)
+        
+        self.K = K
+        self.S = S
+        self.E = E
+        
         
     def compute_linearization(self, state_0, input_0, perturbation_value = .01):
         
         jacobian = np.zeros((16,16))
-        f_0 = simulated_quad.state_dot_input(state_0, input_0)
+        f_0 = self.quad.state_dot(0, state_0, input_0)
         
         for i in range(12):
             
             perturbation_array = np.zeros(12+4)
             perturbation_array[i] = perturbation_value
         
-            f_i_plus = simulated_quad.state_dot_input(state_0 + perturbation_array[0:4], input_0 + perturbatino_array[4:12])
+            f_i_plus = self.quad.state_dot(state_0 + perturbation_array[0:4], input_0 + perturbatino_array[4:12])
             f_i_minus = simulated_quad.state_dot_input(state_0 - perturbation_array[0:4], input_0 - perturbatino_array[4:12])
             
             df_i = np.transpose((f_i_plus - f_0 + f_i_0 - f_i_minus)/(2*perturbation_value)) 
@@ -103,131 +102,158 @@ class LQR_Controller():
         
         
 
-class Fixed_Control_Executor():
+# class Fixed_Control_Executor():
   
-    def __init__(self, control_sequence, motor_limits):
+#     def __init__(self, control_sequence, motor_limits):
         
-        # control sequence is a list of 4 functions which are time dependent 
+#         # control sequence is a list of 4 functions which are time dependent 
         
-        self.control_sequence = control_sequence
-        self.motor_limits = motor_limits
+#         self.control_sequence = control_sequence
+#         self.motor_limits = motor_limits
     
-    def connect_motors(self, m1, m2, m3, m4):
-        self.m1 = m1
-        self.m2 = m2
-        self.m3 = m3
-        self.m4 = m4
+#     def connect_motors(self, m1, m2, m3, m4):
+#         self.m1 = m1
+#         self.m2 = m2
+#         self.m3 = m3
+#         self.m4 = m4
         
-    def set_motor_limits(self, motor_limit):
-        self.motor_limit = motor_limit
+#     def set_motor_limits(self, motor_limit):
+#         self.motor_limit = motor_limit
         
-    def update(self, t, state):
+#     def update(self, t, state):
         
-        u1 = np.clip(self.control_sequence[0](t), self.motor_limit)
-        u2 = np.clip(self.control_sequence[1](t), self.motor_limit)
-        u3 = np.clip(self.control_sequence[2](t), self.motor_limit)
-        u4 = np.clip(self.control_sequence[3](t), self.motor_limit)
+#         u1 = np.clip(self.control_sequence[0](t), self.motor_limit)
+#         u2 = np.clip(self.control_sequence[1](t), self.motor_limit)
+#         u3 = np.clip(self.control_sequence[2](t), self.motor_limit)
+#         u4 = np.clip(self.control_sequence[3](t), self.motor_limit)
         
-        self.m1.set_speed(u1)
-        self.m2.set_speed(u2)
-        self.m3.set_speed(u3)
-        self.m4.set_speed(u4)
+#         self.m1.set_speed(u1)
+#         self.m2.set_speed(u2)
+#         self.m3.set_speed(u3)
+#         self.m4.set_speed(u4)
         
 
-class MPC_Controller():
+# class MPC_Controller():
     
-    def __init__(self, path, quadcopter_params, controller_params): 
+#     def __init__(self, path, quadcopter_params, controller_params): 
         
-        # F = m*a, feed-forward thrust to offset gravity = F/4, 
+#         self.path = path 
+#         self.simulated_quad = quadcopter()
         
-        self.path = path 
+#         self.control_point_spacing = controller_params['control_point_spacing']
+#         self.control_point_horizon = controller_params['control_point_horizon']
+#         self.dt = controller_params['system_tick']
         
-        # self.MOTOR_LIMITS = params['Motor_limits']
-        # self.TILT_LIMITS = [(params['Tilt_limits'][0]/180.0)*3.14,(params['Tilt_limits'][1]/180.0)*3.14]
-        # self.YAW_CONTROL_LIMITS = params['Yaw_Control_Limits']
+#         self.u_1_control_point = np.zeros(self.control_point_horizon)
+#         self.u_2_control_point = np.zeros(self.control_point_horizon)
+#         self.u_3_control_point = np.zeros(self.control_point_horizon)
+#         self.u_4_control_point = np.zeros(self.control_point_horizon)
         
-        # self.Z_LIMITS = [self.MOTOR_LIMITS[0]+params['Z_XY_offset'],self.MOTOR_LIMITS[1]-params['Z_XY_offset']]
+#         self.t_span = np.linspace(0, control_point_spacing*dt*control_point_horizon, control_point_horizon)
         
-        # self.LINEAR_P = params['Linear_PID']['P']
-        # self.LINEAR_I = params['Linear_PID']['I']
-        # self.LINEAR_D = params['Linear_PID']['D']
+#         self.u1 = None
+#         self.u2 = None
+#         self.u3 = None
+#         self.u4 = None
         
-        # self.LINEAR_TO_ANGULAR_SCALER = params['Linear_To_Angular_Scaler']
+#         x_0_state = [0,0,0,0,0,0,0,0,0,0,0,0,]
+#         u_0_state = [0,0,0,0]
         
-        # self.YAW_RATE_SCALER = params['Yaw_Rate_Scaler']
-        # self.ANGULAR_P = params['Angular_PID']['P']
-        # self.ANGULAR_I = params['Angular_PID']['I']
-        # self.ANGULAR_D = params['Angular_PID']['D']
+#         # compute linearized model with constant feed-forward term to counter gravity 
         
-        # self.xi_term = 0
-        # self.yi_term = 0
-        # self.zi_term = 0
-        # self.thetai_term = 0
-        # self.phii_term = 0
-        # self.gammai_term = 0
-        # self.thread_object = None
+#         [self.A, self.B] = compute_linearization(self, x_0_state, u_0_state)
         
-        # self.target = [0,0,0]
-        # self.yaw_target = 0.0
-        # self.run = True
+        
+#         # F = m*a, feed-forward thrust to offset gravity = F/4, 
+        
+#         self.path = path 
+        
+#         # self.MOTOR_LIMITS = params['Motor_limits']
+#         # self.TILT_LIMITS = [(params['Tilt_limits'][0]/180.0)*3.14,(params['Tilt_limits'][1]/180.0)*3.14]
+#         # self.YAW_CONTROL_LIMITS = params['Yaw_Control_Limits']
+        
+#         # self.Z_LIMITS = [self.MOTOR_LIMITS[0]+params['Z_XY_offset'],self.MOTOR_LIMITS[1]-params['Z_XY_offset']]
+        
+#         # self.LINEAR_P = params['Linear_PID']['P']
+#         # self.LINEAR_I = params['Linear_PID']['I']
+#         # self.LINEAR_D = params['Linear_PID']['D']
+        
+#         # self.LINEAR_TO_ANGULAR_SCALER = params['Linear_To_Angular_Scaler']
+        
+#         # self.YAW_RATE_SCALER = params['Yaw_Rate_Scaler']
+#         # self.ANGULAR_P = params['Angular_PID']['P']
+#         # self.ANGULAR_I = params['Angular_PID']['I']
+#         # self.ANGULAR_D = params['Angular_PID']['D']
+        
+#         # self.xi_term = 0
+#         # self.yi_term = 0
+#         # self.zi_term = 0
+#         # self.thetai_term = 0
+#         # self.phii_term = 0
+#         # self.gammai_term = 0
+#         # self.thread_object = None
+        
+#         # self.target = [0,0,0]
+#         # self.yaw_target = 0.0
+#         # self.run = True
         
 
-    def connect_motors(self, m1, m2, m3, m4):
-        self.m1 = m1
-        self.m2 = m2
-        self.m3 = m3
-        self.m4 = m4
+#     def connect_motors(self, m1, m2, m3, m4):
+#         self.m1 = m1
+#         self.m2 = m2
+#         self.m3 = m3
+#         self.m4 = m4
         
-    def set_motor_limits(self, motor_limit):
-        self.motor_limit = motor_limit
+#     def set_motor_limits(self, motor_limit):
+#         self.motor_limit = motor_limit
         
-    def update(self, t, state):
+#     def update(self, t, state):
         
-        if self.ticks == self.control_point_spacing: 
+#         if self.ticks == self.control_point_spacing: 
             
-            # initialize control points spaced into the future using old points
-            # as starting location for search and take last control point
-            # to equal the prior last control point
+#             # initialize control points spaced into the future using old points
+#             # as starting location for search and take last control point
+#             # to equal the prior last control point
             
-            for i in range(len(u_1_control_points)-1):
-                u_1_control_points[i] = u_1_control_points[i+1]
-                u_2_control_points[i] = u_2_control_points[i+1]
-                u_3_control_points[i] = u_3_control_points[i+1]
-                u_4_control_points[i] = u_4_control_points[i+1]
+#             for i in range(len(u_1_control_points)-1):
+#                 u_1_control_points[i] = u_1_control_points[i+1]
+#                 u_2_control_points[i] = u_2_control_points[i+1]
+#                 u_3_control_points[i] = u_3_control_points[i+1]
+#                 u_4_control_points[i] = u_4_control_points[i+1]
                 
-            # generate splines interpolating the control points 
+#             # generate splines interpolating the control points 
             
-            
-                
             
                 
             
                 
+            
+                
                 
             
-        else:
+#         else:
             
             
-            u_1_control_points
+#             u_1_control_points
         
-        10self.update_count 
+#         10self.update_count 
         
-        u_1_control_points =[]
-        u_2_control_points = []
-        u_3_control_points = []
-        u_4_control_points = []
-        
-        
+#         u_1_control_points =[]
+#         u_2_control_points = []
+#         u_3_control_points = []
+#         u_4_control_points = []
         
         
         
-        self.m1.set_speed(10000)
-        self.m2.set_speed(10000)
-        self.m3.set_speed(10000)
-        self.m4.set_speed(10000)
         
-    def get_target_path(self):
-        return self.path
+        
+#         self.m1.set_speed(10000)
+#         self.m2.set_speed(10000)
+#         self.m3.set_speed(10000)
+#         self.m4.set_speed(10000)
+        
+#     def get_target_path(self):
+#         return self.path
 
 
 # class LQR_Controller():

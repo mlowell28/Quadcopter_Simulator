@@ -137,10 +137,12 @@ class GUI():
                     index +=1
     
                 quad.graphics['trajectory'].set_data(x_p, y_p)
-                quad.graphics['trajectory'].set_3d_properties(z_p)   
-            return [quad.graphics['l1'], quad.graphics['l2'], quad.graphics['hub'], quad.graphics['trajectory']
-
+                quad.graphics['trajectory'].set_3d_properties(z_p) 
+                
+        return [quad.graphics['l1'], quad.graphics['l2'], quad.graphics['hub'], quad.graphics['trajectory']]
+ 
     def keypress_routine(self,event):
+        
         sys.stdout.flush()
         if event.key == 'q':
             self.run = False

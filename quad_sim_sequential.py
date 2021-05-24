@@ -17,6 +17,7 @@ def simulate():
     print("starting simulation loop")
     
     # define quadcopter parameters and starting position 
+    gravity = 
     q1_parameters = {'L':0.3,'r':0.1,'prop_parameters':[10,4.5],'weight':1.2, 'motor_limits':[4000,9000]}
     q1_starting_state = {'position':np.array([0,0,20]), 'linear_rate':np.array([0,0,0]), 'orientation':np.array([0,0,0]), 'angular_rate':np.array([0,0,0])}
     
@@ -32,7 +33,7 @@ def simulate():
     
     # define controller and quadcopter
     
-    q1_controller = LQR_Controller(mypath)
+    q1_controller = LQR_Controller(mypath, controller_parameters)
     q1_quadcopter = Quadcopter(q1_parameters, q1_starting_state, q1_controller)
     
     #GUI expects list of quadcopters as input 

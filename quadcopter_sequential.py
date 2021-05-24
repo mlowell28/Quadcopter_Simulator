@@ -1,9 +1,5 @@
 import numpy as np
 import math
-import scipy.integrate
-import time
-import datetime
-import threading
 from scipy.integrate import solve_ivp
 
 class Propeller():
@@ -71,8 +67,7 @@ class Quadcopter():
         self.m4 = Propeller(self.parameters['prop_parameters'][0],self.parameters['prop_parameters'][1])
         
         self.controller = controller
-        self.controller.connect_motors(self.m1, self.m2, self.m3, self.m4)
-        self.controller.set_motor_limits(parameters['motor_limits'])
+        self.controller.add_quadcopter(self)
 
     def rotation_matrix(self,angles):
         ct = math.cos(angles[0])
