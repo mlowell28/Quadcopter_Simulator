@@ -4,6 +4,7 @@ import scipy.integrate
 import time
 import datetime
 import threading
+from scipy.integrate import solve_ivp
 
 class Propeller():
     def __init__(self, prop_dia, prop_pitch, thrust_unit='N'):
@@ -12,6 +13,7 @@ class Propeller():
         self.thrust_unit = thrust_unit
         self.speed = 0 #RPM
         self.thrust = 0
+        self.thrust_unit = thrust_unit
 
     def set_speed(self,speed):
         self.speed = speed
@@ -20,6 +22,21 @@ class Propeller():
         self.thrust = self.thrust*(4.23e-4 * self.speed * self.pitch)
         if self.thrust_unit == 'Kg':
             self.thrust = self.thrust*0.101972
+            
+    def get_thrust(self,speed = None):
+        
+        if speed == None:
+            return self.thrust
+        
+        else:       
+
+            thrust = 4.392e-8 * speed * math.pow(self.dia,3.5)/(math.sqrt(self.pitch))
+            thrust = thrust*(4.23e-4 * self.speed * self.pitch)
+            if self.thrust_unit == 'Kg':
+                self.thrust = self.thrust*0.101972
+                
+            return thrust
+                          
 
 class Quadcopter():
     # State space representation: [x y z, x_dot y_dot z_dot, theta phi gamma, omega_1, omega_2, omega_3]
@@ -38,8 +55,7 @@ class Quadcopter():
         self.state[6:9] = starting_state['orientation']
         self.state[9:12] = starting_state['angular_rate']
         
-  
-        self.ode =  scipy.integrate.ode(self.state_dot).set_integrator('vode',nsteps=500,method='bdf')
+        #self.ode =  scipy.integrate.ode(self.state_dot).set_integrator('vode',nsteps=500,method='bdf')
         
         # From Quadrotor Dynamics and Control by Randal Beard
         ixx=((2*self.parameters['weight']*self.parameters['r']**2)/5)+(2*self.parameters['weight']*self.parameters['L']**2)
@@ -76,14 +92,32 @@ class Quadcopter():
         cp = math.cos(angles[1])
         st = math.sin(angles[0])
         sp = math.sin(angles[1])
-        matrix = np.array([[1,0, -st],[0, cp, ct*sp],[0,-sp, ct*cp]])
-        return np.linalg.inv(matrix)
-
+        #matrix = np.array([[1,0, -st],[0, cp, ct*sp],[0,-sp, ct*cp]])
+        #return np.linalg.inv(matrix)
+        
+        matrix = np.array([[1, sp*st/ct, cp* st/ct],
+                           [0, cp, -sp],
+                           [0, sp*1/ct, cp*1/ct]])
+        return matrix
 
     def wrap_angle(self,val):
         return( ( val + np.pi) % (2 * np.pi ) - np.pi )
 
-    def state_dot(self, t, state):
+    def state_dot(self, t, state, control_input = None):
+        
+        if control_input == None:
+            m1_thrust = self.m1.thrust
+            m2_thrust = self.m2.thrust
+            m3_thrust = self.m3.thrust
+            m4_thrust = self.m4.thrust
+            
+        else:
+            
+            m1_thrust = self.m1.get_thrust(control_input[0])
+            m2_thrust = self.m2.get_thrust(control_input[1])
+            m3_thrust = self.m3.get_thrust(control_input[2])
+            m4_thrust = self.m4.get_thrust(control_input[3])
+        
         
         state_dot = np.zeros(12)
         # The velocities(t+1 x_dots equal the t x_dots)
@@ -91,7 +125,7 @@ class Quadcopter():
         state_dot[1] = self.state[4]
         state_dot[2] = self.state[5]
         # The acceleration
-        x_dotdot = np.array([0,0,-self.parameters['weight']*self.g]) + np.dot(self.rotation_matrix(self.state[6:9]),np.array([0,0,(self.m1.thrust + self.m2.thrust + self.m3.thrust + self.m4.thrust)]))/self.parameters['weight']
+        x_dotdot = np.array([0,0,-self.parameters['weight']*self.g]) + np.dot(self.rotation_matrix(self.state[6:9]),np.array([0,0,(m1_thrust + m2_thrust + m3_thrust + m4_thrust)]))/self.parameters['weight']
         state_dot[3] = x_dotdot[0]
         state_dot[4] = x_dotdot[1]
         state_dot[5] = x_dotdot[2]
@@ -104,7 +138,7 @@ class Quadcopter():
         state_dot[6:9] = np.matmul(self.angular_velocity_transformation_matrix(euler_angles), omega)
 
         # The derivative of the angular velocity vector 
-        tau = np.array([self.parameters['L']*(self.m1.thrust-self.m3.thrust), self.parameters['L']*(self.m2.thrust-self.m4.thrust), self.b*(self.m1.thrust-self.m2.thrust+self.m3.thrust-self.m4.thrust)])
+        tau = np.array([self.parameters['L']*(m1_thrust-m3_thrust), self.parameters['L']*(m2_thrust-m4_thrust), self.b*(m1_thrust-m2_thrust+m3_thrust-m4_thrust)])
         omega_dot = np.dot(self.Iinv, (tau - np.cross(omega, np.dot(self.I,omega))))
         
         state_dot[9:12] = omega_dot
@@ -112,13 +146,12 @@ class Quadcopter():
         return state_dot
 
     def update(self, dt):
-        
+         
         self.controller.update(self.t, self.state)
-        self.ode.set_initial_value(self.state,0)
-        self.state = self.ode.integrate(self.ode.t + dt)
+        self.state = solve_ivp(self.state_dot, self.t, self.t + dt, self.state)
         self.state[6:9] = self.wrap_angle(self.state[6:9])
         self.state[2] = max(0,self.state[2])
-        self.t = self.t+dt
+        self.t += dt 
         
         return [self.state, self.t]
 
