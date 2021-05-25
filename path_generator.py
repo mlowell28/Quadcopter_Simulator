@@ -17,10 +17,11 @@ class Waypoint():
         self.t = t
 
 
+# take in sequential waypoints along with target time, create a path 
+# function which takes in time and gives position and yaw. 
+
 class Path():
     
-    # take in sequential waypoints along with target time, create a path 
-    # function which takes in time and gives position and yaw. 
 
     def __init__(self, waypoints, path_type = 'linear'):
         
@@ -51,9 +52,6 @@ class Path():
     def target_position(self, t):
         
         # if at the start or the end, return the position of the target waypoints   
-        
-        
-        #return [self.f_x(t), self.f_y(t), self.f_z(t)], 0
 
         if 0 == t:    
             return self.waypoints[0].position, self.waypoints[0].yaw
@@ -61,7 +59,7 @@ class Path():
         if self.total_time <= t:
             return self.waypoints[-1].position, self.waypoints[-1].yaw
                 
-        # compute yaw to always point in direction of gradient of path projected onto x/y plan
+        # compute yaw to always point in direction of gradient of path projected onto x/y plane
         
         dt = .1  
         

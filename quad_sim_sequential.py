@@ -17,11 +17,12 @@ def simulate(use_GUI = True):
     # define path
     
     waypoint_1 = Waypoint(np.array([0,0,10]), 0, 0)
-    waypoint_2 = Waypoint(np.array([0,5,12]), math.pi, 20)
-    waypoint_3 = Waypoint(np.array([14,2,12]), math.pi, 60)
-    waypoint_4 = Waypoint(np.array([3,10,5]), 0, 80)
+    waypoint_2 = Waypoint(np.array([0,5,12]), math.pi, 20) #20
+    waypoint_3 = Waypoint(np.array([14,2,12]), math.pi, 30) # 60
+    waypoint_4 = Waypoint(np.array([3,10,5]), 0, 50) # 80
+    waypoint_5 = Waypoint(np.array([0,0,10]),0, 60)
     
-    run_time = 90
+    run_time = 100
     
     # define quadcopter parameters and starting position 
     q1_parameters = {'L':0.3,'r':0.1,'prop_parameters':[10,4.5],'weight':1.2, 'motor_limits':[4000,9000]}
@@ -30,11 +31,11 @@ def simulate(use_GUI = True):
     
     # generate interpolated path 
     
-    mypath = Path([waypoint_1, waypoint_2, waypoint_3, waypoint_4]) #Path([waypoint_1, waypoint_2, waypoint_3])
+    mypath = Path([waypoint_1, waypoint_2, waypoint_3, waypoint_4, waypoint_5]) #Path([waypoint_1, waypoint_2, waypoint_3])
     
     # define LQR cost matrix
     # State space representation: [x y z, x_dot y_dot z_dot, theta phi gamma, omega_1, omega_2, omega_3]
-    Q = np.diag([10000,10000,10000,1,1,1,1,1,1000,1,1,1])
+    Q = np.diag([10000,10000,10000,10,10,10,10,10,1000,10,10,10])
     R = np.diag([1,1,1,1])
     
     # create controller and quadcopter
@@ -58,7 +59,7 @@ def simulate(use_GUI = True):
     
     loop_count = 0
     
-    MAX_LOOP = int(run_time/dt + 5)
+    MAX_LOOP = int(run_time/dt)
     #MAX_LOOP = 4000
     iteration_count = 0
     last_time = time.time()
@@ -119,6 +120,7 @@ def simulate(use_GUI = True):
     plt.title("z position")
     plt.xlabel('s')
     plt.ylabel('m')
+    
     # plot yaw
     plt.figure()
     plt.plot(state_list[12,:], state_list[8,:])
@@ -129,9 +131,7 @@ def simulate(use_GUI = True):
     #plot positional errors
     plt.figure()
     plt.plot(state_list[12,:], error_list[0,:], label = 'x error')
-    #plt.figure()
     plt.plot(state_list[12,:], error_list[1,:], label = 'y error')
-    #plt.figure()
     plt.plot(state_list[12,:], error_list[2,:], label = 'z error')
     plt.title("positional errors")
     plt.xlabel('s')
@@ -157,10 +157,6 @@ def simulate(use_GUI = True):
     plt.ylabel('RPM')
     plt.legend()
     
-    
-    
-    
-
 
 if __name__ == "__main__":
     
