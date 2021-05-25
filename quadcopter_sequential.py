@@ -47,7 +47,6 @@ class Propeller():
         if thrust == None:        
             return self.speed
         
-        
         speed = math.sqrt(thrust/(4.392e-8  * math.pow(self.dia,3.5)/(math.sqrt(self.pitch))*(4.23e-4*self.pitch)))
         return speed
                           
@@ -165,6 +164,7 @@ class Quadcopter():
         self.controller.update(self.t, self.state)
         ivp_out = solve_ivp(self.state_dot, [self.t, self.t + dt], self.state)
         self.state = ivp_out.y[:,1]
+        print('z value is ' + str(self.state[2]))
         self.state[6:9] = self.wrap_angle(self.state[6:9])
         self.state[2] = max(0,self.state[2])
         self.t += dt 
@@ -176,6 +176,9 @@ class Quadcopter():
         self.m2.set_speed(speeds[1])
         self.m3.set_speed(speeds[2])
         self.m4.set_speed(speeds[3])
+        
+    def get_motor_speeds(self):
+        return [self.m1.get_speed(), self.m2.get_speed(), self.m3.get_speed(), self.m4.get_speed()]
 
     def get_position(self):
         return self.state[0:3]

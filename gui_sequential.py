@@ -49,7 +49,7 @@ class GUI():
         for quad in self.quads:
             R = self.rotation_matrix(quad.get_orientation())
             L = quad.parameters['L']
-            points = np.array([ [-L,0,0], [L,0,0], [0,-L,0], [0,L,0], [0,0,0], [0,0,0] ]).T
+            points = np.array([ [-2*L,0,0], [2*L,0,0], [0,-2*L,0], [0,2*L,0], [0,0,0], [0,0,0] ]).T
             points = np.dot(R,points)
             
             position = quad.get_position()

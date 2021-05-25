@@ -50,7 +50,9 @@ class Path():
     
     def target_position(self, t):
         
-        # if at the start or the end, return the position of the target waypoints       
+        # if at the start or the end, return the position of the target waypoints   
+        
+        return [self.f_x(t), self.f_y(t), self.f_z(t)], 0
 
         if 0 == t:    
             return self.waypoints[0].position, self.waypoints[0].yaw
@@ -61,12 +63,15 @@ class Path():
         # compute yaw to always point in direction of gradient of path projected onto x/y plan
         
         dt = .1  
+        
         if t+dt <= self.waypoints[-1].t:
             grad = [(self.f_x(t+dt) - self.f_x(t))/dt, (self.f_y(t+dt) - self.f_y(t))/dt]
-            yaw = math.atan(grad[1]/grad[0])
-            
+            if grad[0] == 0:
+                yaw = 0
+            else:
+                yaw = math.atan(grad[1]/grad[0])      
         else:
-            yaw = self.waypoints[-1]
+            yaw = self.waypoints[-1].yaw
                 
         return [self.f_x(t), self.f_y(t), self.f_z(t)], yaw
                        
