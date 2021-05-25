@@ -5,49 +5,54 @@ import quadcopter_sequential
 from scipy import interpolate
 import control
 
-
-
 class LQR_Controller():
     
     def __init__(self, path, Q, R): 
         
-        # F = m*a, feed-forward thrust to offset gravity = F/4, 
+        # add path object to controller
         
         self.path = path 
+        
+        # set LQR Q and R cost matrix
         
         self.Q = Q
         self.R = R
         
     def add_quadcopter(self, quadcopter):
         
+        # attach quadcopter to controller
         self.quad = quadcopter
         self.connect_motors(quadcopter.m1, quadcopter.m2, quadcopter.m3, quadcopter.m4)   
+        # set motor speed limits
         self.motor_limits = quadcopter.parameters['motor_limits']
+        # build feedback matrix
         self.compute_feedback_matrix()
 
     def compute_feedback_matrix(self):
         
         
         # want equilbrium_point at hover, so motors must offset gravity while
-        # producing no torque 
+        # producing no net torque, so computing equilbrium speed for motors 
         
         F_g = self.quad.g*self.quad.parameters['weight'] 
         F_m = 1/4*F_g
         
         m_s = self.m1.get_speed(F_m)
-        thru = self.m1.get_thrust(m_s)
         
         self.u_0_state = [m_s, m_s, m_s, m_s]
         
-        # we can always translate hovering helicopter to any position and yaw
+        # Note we can always translate hovering helicopter to any position and yaw
         # angle and assuming hovering this will not alter behavior
-        # thus we can assume default state and feed difference into matrix
-        
+        # thus we can assume default state of 0. Note that
         # [x y z, x_dot y_dot z_dot, theta phi gamma, omega_1, omega_2, omega_3]
+        
         self.x_0_state = [0,0,0,0,0,0,0,0,0,0,0,0]
+        
+        # use finite difference approximation to compute jacobian of dynamics
+        # around hover state
         self.A, self.B = self.compute_linearization(self.x_0_state, self.u_0_state)
         
-       #compute LQR gain
+        #compute LQR gain
         
         K, S, E = control.lqr(self.A, self.B, self.Q, self.R)
         
@@ -55,10 +60,12 @@ class LQR_Controller():
         self.S = S
         self.E = E
         
+    
+    # compte approximate jacobian using average finite difference with given
+    # perturbation values 
         
     def compute_linearization(self, state_0, input_0, perturbation_value = .01):
         
-        # average finite difference from left and right
         jacobian = np.zeros((12,16))
         for i in range(16):
             
@@ -72,39 +79,53 @@ class LQR_Controller():
             
             jacobian[:, i] = df_i
             
+        # split jacobian into state linearization and control linearization
+        
         A = jacobian[:, :12]
         B = jacobian[:,12:]
 
         return A, B
 
+    # attach motor objects to controller
     def connect_motors(self, m1, m2, m3, m4):
         self.m1 = m1
         self.m2 = m2
         self.m3 = m3
         self.m4 = m4
-        
+    
+    # set motor limits in the form of [low, high], update will clip speeds to be
+    # within values
     def set_motor_limits(self, motor_limit):
         self.motor_limit = motor_limit     
         
-        #quadcopter state is [x y z, x_dot y_dot z_dot, theta, phi, gamma, omega_1, omega_2, omega_3]
-        # yaw is gamma 
+    
+    # quadcopter state is [x y z, x_dot y_dot z_dot, theta, phi, gamma, omega_1, omega_2, omega_3]
+    # yaw is gamma 
         
     def update(self, t, state):
         
         [x_t, y_t, z_t], yaw = self.path.target_position(t)
         
+        # we want the quadcopter to track the target equilibrium position,
+        # by varying it we can force the quadcopter to track a trajectory
+        
         target_state = [x_t, y_t, z_t, 0, 0, 0, 0, 0, yaw, 0, 0, 0]
         
-        [u1, u2, u3, u4] = np.clip([self.K*(state - target_state)],self.motor_limits[0], self.motor_limits[1])
+        # using the error between current state and target state as our input, we can
+        # force the quadcopter to seek an error of 0.
+        
+        [u1, u2, u3, u4] = np.clip(self.K*(state - target_state), self.motor_limits[0], self.motor_limits[1])
         
         self.m1.set_speed(u1)
         self.m2.set_speed(u2)
         self.m3.set_speed(u3)
         self.m4.set_speed(u4)
 
+    # return the path object the controller is using
     def get_target_path(self):
         return self.path
     
+    # update the path object the controller is using
     def set_target_path(self, path):
         self.path = path
         

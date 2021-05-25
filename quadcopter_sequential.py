@@ -2,7 +2,13 @@ import numpy as np
 import math
 from scipy.integrate import solve_ivp
 
+
+# Propeller class which computs thrust from speed, also computes speed needed
+# for a given thrust. 
+
 class Propeller():
+    
+    # define propeller parameters  
     def __init__(self, prop_dia, prop_pitch, thrust_unit='N'):
         self.dia = prop_dia
         self.pitch = prop_pitch
@@ -10,7 +16,8 @@ class Propeller():
         self.speed = 0 #RPM
         self.thrust = 0
         self.thrust_unit = thrust_unit
-
+        
+    # set speed and resulting thrust, note that thrust is the square of speed
     def set_speed(self,speed):
         self.speed = speed
         # From http://www.electricrcaircraftguy.com/2013/09/propeller-static-dynamic-thrust-equation.html
@@ -18,26 +25,29 @@ class Propeller():
         self.thrust = self.thrust*(4.23e-4 * self.speed * self.pitch)
         if self.thrust_unit == 'Kg':
             self.thrust = self.thrust*0.101972
+        return self.thrust
             
+    # compute thrust for a given speed without saving to propeller object
     def get_thrust(self,speed = None):
         
         if speed == None:
             return self.thrust
-        
         else:       
-
             thrust = 4.392e-8 * speed * math.pow(self.dia,3.5)/(math.sqrt(self.pitch))
             thrust = thrust*(4.23e-4 * speed * self.pitch)
-            
             if self.thrust_unit == 'Kg':
                 self.thrust = self.thrust*0.101972
-                
             return thrust
         
-    def get_speed(self, thrust= None):
+    # returns current speed, if thrust is given as input computes required speed
+    # to produce thrust in given unit
+    
+    def get_speed(self, thrust= None, unit = 'N'):
         
-        if thrust == None:
-            return self.speed     
+        if thrust == None:        
+            return self.speed
+        
+        
         speed = math.sqrt(thrust/(4.392e-8  * math.pow(self.dia,3.5)/(math.sqrt(self.pitch))*(4.23e-4*self.pitch)))
         return speed
                           
@@ -58,8 +68,6 @@ class Quadcopter():
         self.state[3:6] = starting_state['linear_rate']
         self.state[6:9] = starting_state['orientation']
         self.state[9:12] = starting_state['angular_rate']
-        
-        #self.ode =  scipy.integrate.ode(self.state_dot).set_integrator('vode',nsteps=500,method='bdf')
         
         # From Quadrotor Dynamics and Control by Randal Beard
         ixx=((2*self.parameters['weight']*self.parameters['r']**2)/5)+(2*self.parameters['weight']*self.parameters['L']**2)
