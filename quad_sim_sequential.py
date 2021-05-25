@@ -16,11 +16,11 @@ def simulate(use_GUI = True):
        
     # define path
     
-    waypoint_1 = Waypoint(np.array([0,0,10]), 0, 0)
-    waypoint_2 = Waypoint(np.array([0,5,12]), math.pi, 20) #20
-    waypoint_3 = Waypoint(np.array([14,2,12]), math.pi, 30) # 60
-    waypoint_4 = Waypoint(np.array([3,10,5]), 0, 50) # 80
-    waypoint_5 = Waypoint(np.array([0,0,10]),0, 60)
+    waypoint_1 = Waypoint(np.array([0,0,10]), 0,)
+    waypoint_2 = Waypoint(np.array([0,5,12]), 20) #20
+    waypoint_3 = Waypoint(np.array([14,2,12]), 40) # 60
+    waypoint_4 = Waypoint(np.array([3,10,5]), 50) # 80
+    waypoint_5 = Waypoint(np.array([0,0,10]), 60, .5)
     
     run_time = 100
     
@@ -35,7 +35,7 @@ def simulate(use_GUI = True):
     
     # define LQR cost matrix
     # State space representation: [x y z, x_dot y_dot z_dot, theta phi gamma, omega_1, omega_2, omega_3]
-    Q = np.diag([10000,10000,10000,10,10,10,10,10,1000,10,10,10])
+    Q = np.diag([10000,10000,10000,10,10,10,10,10,10000,10,10,10])
     R = np.diag([1,1,1,1])
     
     # create controller and quadcopter
@@ -83,16 +83,17 @@ def simulate(use_GUI = True):
         
         [x,y,z], yaw = mypath.target_position(t_now)
         
+        
         error_list[0, loop_count] = abs(x - state[0])
         error_list[1, loop_count] = abs(y - state[1])
         error_list[2, loop_count] = abs(z - state[2])
-        error_list[3, loop_count] = abs(yaw - state[5])
+        error_list[3, loop_count] = abs(yaw - state[8])
         print("time " + str(t_now))
         print("x error " + str(error_list[0,loop_count]))
         print("y error " + str(error_list[1,loop_count]))
         print("z error " + str(error_list[2,loop_count]))
         print("yaw error " + str(error_list[3,loop_count]))
-        
+                
         t += dt
         iteration_count += 1
         loop_count +=1

@@ -8,10 +8,11 @@ import numpy as np
 import math
 from scipy import interpolate
 
-# define waypoint class which contains position, yaw and time.
+# define waypoint class which contains position, time and optinal yaw.
+# yaw 
 
 class Waypoint():
-    def __init__(self, position, yaw, t):
+    def __init__(self, position, t, yaw=0):
         self.position = position
         self.yaw = yaw
         self.t = t
@@ -23,7 +24,7 @@ class Waypoint():
 class Path():
     
 
-    def __init__(self, waypoints, path_type = 'linear'):
+    def __init__(self, waypoints, path_type = 'cubic'):
         
         self.waypoints = waypoints
         self.path_type = path_type
@@ -51,11 +52,7 @@ class Path():
     
     def target_position(self, t):
         
-        # if at the start or the end, return the position of the target waypoints   
-
-        if 0 == t:    
-            return self.waypoints[0].position, self.waypoints[0].yaw
-                
+        # if at the end waypoint, return resting waypoint
         if self.total_time <= t:
             return self.waypoints[-1].position, self.waypoints[-1].yaw
                 
