@@ -52,12 +52,13 @@ class Path():
         
         # if at the start or the end, return the position of the target waypoints   
         
-        return [self.f_x(t), self.f_y(t), self.f_z(t)], 0
+        
+        #return [self.f_x(t), self.f_y(t), self.f_z(t)], 0
 
         if 0 == t:    
             return self.waypoints[0].position, self.waypoints[0].yaw
                 
-        if self.total_time == t:
+        if self.total_time <= t:
             return self.waypoints[-1].position, self.waypoints[-1].yaw
                 
         # compute yaw to always point in direction of gradient of path projected onto x/y plan
@@ -69,11 +70,11 @@ class Path():
             if grad[0] == 0:
                 yaw = 0
             else:
-                yaw = math.atan(grad[1]/grad[0])      
-        else:
-            yaw = self.waypoints[-1].yaw
+                yaw = math.atan(grad[1]/grad[0]) 
+            return [self.f_x(t), self.f_y(t), self.f_z(t)], yaw
                 
-        return [self.f_x(t), self.f_y(t), self.f_z(t)], yaw
+        else:    
+            return self.waypoints[-1].position, self.waypoints[-1].yaw
                        
     def get_total_time(self):
         return self.total_time

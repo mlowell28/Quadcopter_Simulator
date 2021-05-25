@@ -18,7 +18,9 @@ def simulate(use_GUI = True):
     
     waypoint_1 = Waypoint(np.array([0,0,10]), 0, 0)
     waypoint_2 = Waypoint(np.array([0,5,12]), math.pi, 20)
-    waypoint_3 = Waypoint(np.array([14,2,12]), math.pi/2, 60)
+    waypoint_3 = Waypoint(np.array([14,2,12]), math.pi, 60)
+    
+    run_time = 60
     
     # define quadcopter parameters and starting position 
     q1_parameters = {'L':0.3,'r':0.1,'prop_parameters':[10,4.5],'weight':1.2, 'motor_limits':[4000,9000]}
@@ -46,11 +48,17 @@ def simulate(use_GUI = True):
         mygui = GUI([q1_quadcopter])
         
     
+    # set step size in seconds
     dt = 1/60
+    # set starting time
     t = 0
     
+    # compute approximate number of iterations to reach target
+    
     loop_count = 0
-    MAX_LOOP = 2000
+    
+    MAX_LOOP = int(run_time/dt + 5)
+    #MAX_LOOP = 4000
     iteration_count = 0
     last_time = time.time()
     
@@ -72,13 +80,12 @@ def simulate(use_GUI = True):
         motor_speed_list[:,loop_count] = [m1, m2, m3, m4]
         
         [x,y,z], yaw = mypath.target_position(t_now)
-    
         
         error_list[0, loop_count] = abs(x - state[0])
         error_list[1, loop_count] = abs(y - state[1])
         error_list[2, loop_count] = abs(z - state[2])
         error_list[3, loop_count] = abs(yaw - state[5])
-        
+        print("time " + str(t_now))
         print("x error " + str(error_list[0,loop_count]))
         print("y error " + str(error_list[1,loop_count]))
         print("z error " + str(error_list[2,loop_count]))
@@ -120,32 +127,34 @@ def simulate(use_GUI = True):
     
     #plot positional errors
     plt.figure()
-    plt.plot(state_list[12,:], error_list[0,:])
-    plt.plot(state_list[12,:], error_list[1,:])
-    plt.plot(state_list[12,:], error_list[2,:])
-    plt.legend({'x,', 'y', 'z'})
+    plt.plot(state_list[12,:], error_list[0,:], label = 'x error')
+    #plt.figure()
+    plt.plot(state_list[12,:], error_list[1,:], label = 'y error')
+    #plt.figure()
+    plt.plot(state_list[12,:], error_list[2,:], label = 'z error')
     plt.title("positional errors")
     plt.xlabel('s')
     plt.ylabel('m')
+    plt.legend()
     
     # plot yaw error
     plt.figure()
-    plt.plot(state_list[12,:], error_list[3,:])
-    plt.legend({'yaw'})
+    plt.plot(state_list[12,:], error_list[3,:], label = 'yaw')
     plt.title("yaw error")
     plt.xlabel('s')
     plt.ylabel('radians')
+    plt.legend()
     
     #plot motor speeds 
     plt.figure()
-    plt.plot(state_list[12,:], motor_speed_list[0,:])
-    plt.plot(state_list[12,:], motor_speed_list[1,:])
-    plt.plot(state_list[12,:], motor_speed_list[2,:])
-    plt.plot(state_list[12,:], motor_speed_list[3,:])
-    plt.legend({'m1,', 'm2', 'm3', 'm4'})
+    plt.plot(state_list[12,:], motor_speed_list[0,:], label = 'm1')
+    plt.plot(state_list[12,:], motor_speed_list[1,:], label = 'm2')
+    plt.plot(state_list[12,:], motor_speed_list[2,:], label = 'm3')
+    plt.plot(state_list[12,:], motor_speed_list[3,:], label = 'm4')
     plt.title("motor speeds")
     plt.xlabel('s')
     plt.ylabel('RPM')
+    plt.legend()
     
     
     
