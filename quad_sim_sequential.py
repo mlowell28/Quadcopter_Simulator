@@ -19,8 +19,9 @@ def simulate(use_GUI = True):
     waypoint_1 = Waypoint(np.array([0,0,10]), 0, 0)
     waypoint_2 = Waypoint(np.array([0,5,12]), math.pi, 20)
     waypoint_3 = Waypoint(np.array([14,2,12]), math.pi, 60)
+    waypoint_4 = Waypoint(np.array([3,10,5]), 0, 80)
     
-    run_time = 60
+    run_time = 90
     
     # define quadcopter parameters and starting position 
     q1_parameters = {'L':0.3,'r':0.1,'prop_parameters':[10,4.5],'weight':1.2, 'motor_limits':[4000,9000]}
@@ -29,7 +30,7 @@ def simulate(use_GUI = True):
     
     # generate interpolated path 
     
-    mypath = Path([waypoint_1, waypoint_2, waypoint_3]) #Path([waypoint_1, waypoint_2, waypoint_3])
+    mypath = Path([waypoint_1, waypoint_2, waypoint_3, waypoint_4]) #Path([waypoint_1, waypoint_2, waypoint_3])
     
     # define LQR cost matrix
     # State space representation: [x y z, x_dot y_dot z_dot, theta phi gamma, omega_1, omega_2, omega_3]
