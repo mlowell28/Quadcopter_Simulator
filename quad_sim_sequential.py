@@ -17,8 +17,8 @@ def simulate(use_GUI = True):
     # define path
     
     waypoint_1 = Waypoint(np.array([0,0,10]), 0, 0)
-    waypoint_2 = Waypoint(np.array([0,1,12]), 0, 10)
-    waypoint_3 = Waypoint(np.array([14,2,12]), math.pi/2, 600)
+    waypoint_2 = Waypoint(np.array([0,5,12]), math.pi, 20)
+    waypoint_3 = Waypoint(np.array([14,2,12]), math.pi/2, 60)
     
     # define quadcopter parameters and starting position 
     q1_parameters = {'L':0.3,'r':0.1,'prop_parameters':[10,4.5],'weight':1.2, 'motor_limits':[4000,9000]}
@@ -27,7 +27,7 @@ def simulate(use_GUI = True):
     
     # generate interpolated path 
     
-    mypath = Path([waypoint_1, waypoint_2]) #Path([waypoint_1, waypoint_2, waypoint_3])
+    mypath = Path([waypoint_1, waypoint_2, waypoint_3]) #Path([waypoint_1, waypoint_2, waypoint_3])
     
     # define LQR cost matrix
     # State space representation: [x y z, x_dot y_dot z_dot, theta phi gamma, omega_1, omega_2, omega_3]
@@ -50,7 +50,7 @@ def simulate(use_GUI = True):
     t = 0
     
     loop_count = 0
-    MAX_LOOP = 600
+    MAX_LOOP = 2000
     iteration_count = 0
     last_time = time.time()
     
@@ -59,6 +59,7 @@ def simulate(use_GUI = True):
     
     state_list = np.zeros((13,MAX_LOOP))
     motor_speed_list = np.zeros((4,MAX_LOOP))
+    error_list = np.zeros((4,MAX_LOOP))
     
     while(loop_count < MAX_LOOP):
         [state, t_now] = q1_quadcopter.update(dt)
@@ -70,6 +71,19 @@ def simulate(use_GUI = True):
         
         motor_speed_list[:,loop_count] = [m1, m2, m3, m4]
         
+        [x,y,z], yaw = mypath.target_position(t_now)
+    
+        
+        error_list[0, loop_count] = abs(x - state[0])
+        error_list[1, loop_count] = abs(y - state[1])
+        error_list[2, loop_count] = abs(z - state[2])
+        error_list[3, loop_count] = abs(yaw - state[5])
+        
+        print("x error " + str(error_list[0,loop_count]))
+        print("y error " + str(error_list[1,loop_count]))
+        print("z error " + str(error_list[2,loop_count]))
+        print("yaw error " + str(error_list[3,loop_count]))
+        
         t += dt
         iteration_count += 1
         loop_count +=1
@@ -79,8 +93,9 @@ def simulate(use_GUI = True):
                 run = mygui.update()
                 iteration_count = 0 
         
-        print(loop_count)
+        print("iteration " + str(loop_count))
     
+    # plot positions
     plt.figure()
     plt.plot(state_list[12,:], state_list[0,:])
     plt.title("x position")
@@ -96,19 +111,28 @@ def simulate(use_GUI = True):
     plt.title("z position")
     plt.xlabel('s')
     plt.ylabel('m')
-    # plt.figure()
-    # plt.plot(state_list[12,:], state_list[6,:])
-    # plt.title("x position")
-    # plt.xlabel('s')
-    # plt.ylabel('m')
-    # plt.figure()
-    # plt.plot(state_list[12,:], state_list[7,:])
-    # plt.title("x position")
-    # plt.xlabel('s')
-    # plt.ylabel('m')
+    # plot yaw
     plt.figure()
     plt.plot(state_list[12,:], state_list[8,:])
     plt.title("yaw")
+    plt.xlabel('s')
+    plt.ylabel('radians')
+    
+    #plot positional errors
+    plt.figure()
+    plt.plot(state_list[12,:], error_list[0,:])
+    plt.plot(state_list[12,:], error_list[1,:])
+    plt.plot(state_list[12,:], error_list[2,:])
+    plt.legend({'x,', 'y', 'z'})
+    plt.title("positional errors")
+    plt.xlabel('s')
+    plt.ylabel('m')
+    
+    # plot yaw error
+    plt.figure()
+    plt.plot(state_list[12,:], error_list[3,:])
+    plt.legend({'yaw'})
+    plt.title("yaw error")
     plt.xlabel('s')
     plt.ylabel('radians')
     

@@ -115,9 +115,6 @@ class LQR_Controller():
         # using the error between current state and target state as our input, we sekcan
         # force the quadcopter to seek an error of 0.
         
-        print("time "+ str(t))
-        if t > 3:
-            None
         [u1, u2, u3, u4] = -1*np.matmul(self.K,(state - target_state)) + self.u_0_state
         
         self.m1.set_speed(u1)

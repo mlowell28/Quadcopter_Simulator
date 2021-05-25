@@ -164,7 +164,6 @@ class Quadcopter():
         self.controller.update(self.t, self.state)
         ivp_out = solve_ivp(self.state_dot, [self.t, self.t + dt], self.state)
         self.state = ivp_out.y[:,1]
-        print('z value is ' + str(self.state[2]))
         self.state[6:9] = self.wrap_angle(self.state[6:9])
         self.state[2] = max(0,self.state[2])
         self.t += dt 
