@@ -14,15 +14,16 @@ def simulate(use_GUI = True):
     print("starting simulation loop")
     
        
-    # define path
+    # define path, second argument to waypoint is time, third is optinal yaw 
+    # but is only to define ending pose 
     
     waypoint_1 = Waypoint(np.array([0,0,10]), 0,)
-    waypoint_2 = Waypoint(np.array([0,5,12]), 20) #20
-    waypoint_3 = Waypoint(np.array([14,2,12]), 40) # 60
-    waypoint_4 = Waypoint(np.array([3,10,5]), 50) # 80
-    waypoint_5 = Waypoint(np.array([0,0,10]), 60, .5)
+    waypoint_2 = Waypoint(np.array([0,5,12]), 40) #20
+    waypoint_3 = Waypoint(np.array([14,2,12]), 70) # 60
+    waypoint_4 = Waypoint(np.array([3,10,5]), 100) # 80
+    waypoint_5 = Waypoint(np.array([0,0,10]), 120, .5)
     
-    run_time = 100
+    run_time = 150
     
     # define quadcopter parameters and starting position 
     q1_parameters = {'L':0.3,'r':0.1,'prop_parameters':[10,4.5],'weight':1.2, 'motor_limits':[4000,9000]}
