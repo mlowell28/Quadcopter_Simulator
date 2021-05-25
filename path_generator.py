@@ -33,7 +33,9 @@ class Path():
         z_p = []
         t_p = []
         
-        for waypoint in range(len(self.waypoints)):
+        # build list to interpolate waypoints
+        
+        for waypoint in waypoints:
             
             [x,y,z] = waypoint.position
             x_p.append(x)
@@ -48,37 +50,25 @@ class Path():
     
     def target_position(self, t):
         
-        # if at the start or the end, return the position of the target waypoints
+        # if at the start or the end, return the position of the target waypoints       
+
+        if 0 == t:    
+            return self.waypoints[0].position, self.waypoints[0].yaw
+                
+        if self.total_time == t:
+            return self.waypoints[-1].position, self.waypoints[-1].yaw
+                
+        # compute yaw to always point in direction of gradient of path projected onto x/y plan
         
-        if t == 0:
-            return [self.waypoints[0].position, self.waypoints[0].yaw]  
-        
-        if t >= self.waypoints[len(self.waypoints)-1].t:
-            return [self.waypoints[-1].position, self.waypoints[-1].yaw]  
-        
-        # if linear interpolation is used
-        
-        if self.path_type == 'linear': 
+        dt = .1  
+        if t+dt <= self.waypoints[-1].t:
+            grad = [(self.f_x(t+dt) - self.f_x(t))/dt, (self.f_y(t+dt) - self.f_y(t))/dt]
+            yaw = math.atan(grad[1]/grad[0])
             
-        
-            # iterate through waypoints, if waypoint 
-            for i in range(len(self.waypoints)-1):
-                if self.waypoints[i].t <= t and self.waypoints[i+1].t >= t:
-                    f_x = interpolate.interp1d([self.waypoints[i].t, self.waypoints[i+1].t], [self.waypoints[i].position[0], self.waypoints[i+1].position[0]])
-                    f_y = interpolate.interp1d([self.waypoints[i].t, self.waypoints[i+1].t], [self.waypoints[i].position[1], self.waypoints[i+1].position[1]])
-                    f_z = interpolate.interp1d([self.waypoints[i].t, self.waypoints[i+1].t], [self.waypoints[i].position[2], self.waypoints[i+1].position[2]])    
-                    
-                    # if within .1 of next waypoint
-                    
-                    if np.linalg.norm((np.array([f_x(t), f_y(t), f_z(t)]) - self.waypoints[i+1].position)) < .1:
-                        return np.array([f_x(t), f_y(t), f_z(t)]), self.waypoints[i+1].yaw                    
-                    
-                    # else set yaw towards next waypoint 
-                    
-                    [x,y,z] = self.waypoints[i+1].position - self.waypoints[i].position
-                    yaw = math.atan(y/x)
-                    
-                    return [f_x(t), f_y(t), f_z(t)], yaw
+        else:
+            yaw = self.waypoints[-1]
+                
+        return [self.f_x(t), self.f_y(t), self.f_z(t)], yaw
                        
     def get_total_time(self):
         return self.total_time

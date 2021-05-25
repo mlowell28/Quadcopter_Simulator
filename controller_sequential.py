@@ -39,6 +39,7 @@ class LQR_Controller():
         
         m_s = self.m1.get_speed(F_m)
         
+        # this is the motor speed linearization is computed around
         self.u_0_state = [m_s, m_s, m_s, m_s]
         
         # Note we can always translate hovering helicopter to any position and yaw
@@ -111,10 +112,10 @@ class LQR_Controller():
         
         target_state = [x_t, y_t, z_t, 0, 0, 0, 0, 0, yaw, 0, 0, 0]
         
-        # using the error between current state and target state as our input, we can
+        # using the error between current state and target state as our input, we sekcan
         # force the quadcopter to seek an error of 0.
         
-        [u1, u2, u3, u4] = np.clip(self.K*(state - target_state), self.motor_limits[0], self.motor_limits[1])
+        [u1, u2, u3, u4] = np.matmul(self.K,(state - target_state)) + self.u_0_state
         
         self.m1.set_speed(u1)
         self.m2.set_speed(u2)
