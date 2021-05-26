@@ -102,8 +102,6 @@ class Quadcopter():
         cp = math.cos(angles[1])
         st = math.sin(angles[0])
         sp = math.sin(angles[1])
-        #matrix = np.array([[1,0, -st],[0, cp, ct*sp],[0,-sp, ct*cp]])
-        #return np.linalg.inv(matrix)
         
         matrix = np.array([[1, sp*st/ct, cp* st/ct],
                            [0, cp, -sp],

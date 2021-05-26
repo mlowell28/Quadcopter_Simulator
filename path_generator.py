@@ -24,7 +24,7 @@ class Waypoint():
 class Path():
     
 
-    def __init__(self, waypoints, path_type = 'cubic'):
+    def __init__(self, waypoints, path_type = 'linear'):
         
         self.waypoints = waypoints
         self.path_type = path_type
@@ -54,7 +54,8 @@ class Path():
         
         # if at the end waypoint, return resting waypoint
         if self.total_time <= t:
-            return self.waypoints[-1].position, self.waypoints[-1].yaw
+            #return self.waypoints[-1].position, self.waypoints[-1].yaw
+            return self.waypoints[-1].position, 0
                 
         # compute yaw to always point in direction of gradient of path projected onto x/y plane
         
@@ -62,14 +63,12 @@ class Path():
         
         if t+dt <= self.waypoints[-1].t:
             grad = [(self.f_x(t+dt) - self.f_x(t))/dt, (self.f_y(t+dt) - self.f_y(t))/dt]
-            if grad[0] == 0:
-                yaw = 0
-            else:
-                yaw = math.atan(grad[1]/grad[0]) 
+            yaw = math.atan2(grad[1],grad[0]) 
+            yaw = 0;
             return [self.f_x(t), self.f_y(t), self.f_z(t)], yaw
-                
         else:    
-            return self.waypoints[-1].position, self.waypoints[-1].yaw
+            #return self.waypoints[-1].position, self.waypoints[-1].yaw
+            return self.waypoints[-1].position, 0
                        
     def get_total_time(self):
         return self.total_time
