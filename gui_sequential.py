@@ -71,11 +71,11 @@ class GUI():
             if mypath != None:
                 total_time = mypath.get_total_time()
                 
-                t_span = np.linspace(0, total_time, 100)
+                t_span = np.linspace(0, total_time, 1000)
                 
-                x_p = np.zeros(100)
-                y_p = np.zeros(100)
-                z_p = np.zeros(100)
+                x_p = np.zeros(1000)
+                y_p = np.zeros(1000)
+                z_p = np.zeros(1000)
                 
                 index = 0
                 for t in t_span:
