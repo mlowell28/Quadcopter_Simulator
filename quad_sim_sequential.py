@@ -28,7 +28,7 @@ def simulate(use_GUI = True):
     
 
     
-    run_time = 500
+    run_time = 200
     # define quadcopter parameters and starting position 
     q1_parameters = {'L':0.3,'r':0.1,'prop_parameters':[10,4.5],'weight':1.2, 'motor_limits':[1000,10000]}
     q1_starting_state = {'position':np.array([-10,-10,5]), 'linear_rate':np.array([0,0,0]), 'orientation':np.array([0,0,2.5]), 'angular_rate':np.array([0,0,0])}
@@ -37,12 +37,12 @@ def simulate(use_GUI = True):
     
     mypath = WaypointPath([waypoint_1,waypoint_2,waypoint_3,waypoint_4,waypoint_5, waypoint_6, waypoint_7, waypoint_8, waypoint_9], interpolate_path = True)
     
-    # f_x = lambda t: t/100 #5*math.sin(2*math.pi*t/500)+10
-    # f_y = lambda t: t/100 #5*math.cos(2*math.pi*t/500)+10
-    # f_z = lambda t: 5 #+ t/100
-    # f_yaw = lambda t: t/200 #
+    f_x = lambda t: 5*math.sin(2*math.pi*t/100)+-10
+    f_y = lambda t: 5*math.cos(2*math.pi*t/100)+-15
+    f_z = lambda t: 5 + t/100
+    f_yaw = lambda t: t/100 #
     
-    # mypath = SmoothPath(f_x, f_y, f_z, f_yaw, run_time)
+    mypath = SmoothPath(f_x, f_y, f_z, f_yaw, run_time)
     
     
     # define LQR cost matrix
