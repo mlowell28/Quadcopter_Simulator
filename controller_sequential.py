@@ -55,7 +55,7 @@ class LQR_Controller():
        # based upon which yaw value is closest to the target yaw value
         
         if x_0_state == None:
-            yaw_angles = np.linspace(-math.pi,math.pi, 10)
+            yaw_angles = np.linspace(-math.pi,math.pi, 100)
             
             for yaw_angle in yaw_angles:
                 self.x_0_state = [0,0,0,0,0,0,0,0,yaw_angle,0,0,0]
@@ -157,18 +157,20 @@ class LQR_Controller():
             yaw_error = -1*(2*math.pi - yaw_error)  
         elif yaw_error < -1*math.pi:
             yaw_error = (2*math.pi + yaw_error) 
-            
-        error = state - target_state 
-        error[8] = yaw_error
-        
         
         # find closest feedback matrix to target yaw
         best_yaw_dist = 10
+        closest_yaw = 0
         for i in range(len(self.feedback_matrix_list)):
-            yaw_dist = abs(self.feedback_matrix_list[i][0] - target_state[8])
+            yaw_dist = abs(self.wrap_angle(self.feedback_matrix_list[i][0] - target_state[8]))
             if yaw_dist < best_yaw_dist:
                 best_yaw_dist = yaw_dist
+                closest_yaw = self.feedback_matrix_list[i][0]
                 K = self.feedback_matrix_list[i][1]
+                
+        error = state - target_state 
+        error[8] = self.wrap_angle(error[8])
+        #error[8] = state[8] - closest_yaw
         
         [u1, u2, u3, u4] = -1*np.matmul(K,error) + self.u_0_state
         [u1, u2, u3, u4] = np.clip([u1, u2, u3, u4], self.motor_limits[0], self.motor_limits[1])
@@ -218,6 +220,10 @@ class LQR_Controller():
     
     def set_target_path(self, path):
         self.path = path
+        
+    def wrap_angle(self,val):
+        return( ( val + np.pi) % (2 * np.pi ) - np.pi )
+
         
      
     # create a controller which executes a fixed control sequence where

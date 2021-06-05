@@ -27,17 +27,19 @@ class StepInput():
 # and an optional hover time and yaw angle to use while at the waypoint.  
 
 class Waypoint():
-    def __init__(self, position, travel_time, yaw = 0):
+    def __init__(self, position, travel_time, yaw = 0, hover_time = 0):
         self.position = position
         self.yaw = yaw
         self.travel_time = travel_time
+        self.hover_time = hover_time
         
         
 class WaypointPath():
     
-    def __init__(self, waypoints):
+    def __init__(self, waypoints, interpolate_path = False):
         
         self.waypoints = waypoints
+        self.interpolate_path = interpolate_path
         total_time = 0
         
         for waypoint in waypoints:
@@ -46,20 +48,67 @@ class WaypointPath():
             
         self.total_time = total_time
      
-    def target_position(self, t, interpolate = False):
+    def target_position(self, t):
         
-        target_state = np.zeros(12)
-        
-        for waypoint in self.waypoints:
-            if waypoint.total_time > t:   
-                target_state[0:3] = waypoint.position
-                target_state[8] = waypoint.yaw
-                return target_state
+        if self.interpolate_path == False:
+            next_state= np.zeros(12)
+            for waypoint_index in range(len(self.waypoints)):
+                if self.waypoints[waypoint_index].total_time > t:   
+                    next_state[0:3] = self.waypoints[waypoint_index].position
+                    next_state[8] = self.waypoints[waypoint_index].yaw
+                    return next_state
+                
+            next_state[0:3] = self.waypoints[-1].position
+            next_state[8] = self.waypoints[-1].yaw
             
-        target_state[0:3] = self.waypoints[-1].position
-        target_state[8] = self.waypoints[-1].yaw
+            return next_state
         
-        return target_state
+        # if interpolation is true, apply linear interpolation between waypoints
+        
+        if self.interpolate_path == True:
+            
+            last_state = np.zeros(12)
+            next_state = np.zeros(12)
+            
+            target_state = np.zeros(12)
+            
+            for waypoint_index in range(len(self.waypoints)):
+                if self.waypoints[waypoint_index].total_time > t:  
+                    last_waypoint = self.waypoints[waypoint_index-1]
+                    next_waypoint = self.waypoints[waypoint_index]
+                    
+                    last_state[0:3] = last_waypoint.position 
+                    last_state[8] = last_waypoint.yaw 
+                    
+                    next_state[0:3] = next_waypoint.position
+                    next_state[8] = next_waypoint.yaw
+                    
+                    # if positions are the same but yaw is different, 
+                    # return  
+                    
+                    if np.array_equal(last_state[0:3], next_state[0:3]):
+                        target_state = next_state
+                        return target_state
+                    
+                    # else linear interpolate positions and define 
+                    # yaw so that quadcopter faces in direction of yaw 
+                    
+                    vec = next_state - last_state
+                    target_state[8] = math.atan2(vec[1], vec[0])
+                    
+                    # target position 
+                    
+                    vec = (t-last_waypoint.total_time)/(next_waypoint.total_time - last_waypoint.total_time) *(next_state - last_state) + last_state
+                    target_state[0:3] = vec[0:3]
+     
+                    return target_state
+                
+            target_state[0:3] = self.waypoints[-1].position
+            target_state[8] = self.waypoints[-1].yaw
+            
+            return target_state
+                
+
         
     def get_total_time(self):
         return self.total_time
@@ -88,7 +137,7 @@ class SmoothPath():
             t = self.discrete_time
             
         target_state[0:3] = [self.f_x(t), self.f_y(t), self.f_z(t)]
-        target_state[8] = self.f_yaw(t)
+        target_state[8] = self.wrap_angle(self.f_yaw(t))
         
         return target_state
 
