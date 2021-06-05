@@ -15,7 +15,10 @@ class StepInput():
         self.yaw = yaw 
         
     def target_position(self, t):
-        return self.position, self.yaw
+        target_state = np.zeros(12)
+        target_state[0:3] = self.position
+        target_state[8] = self.yaw
+        return target_state
     
     def get_total_time(self):
         return 1000
@@ -43,13 +46,20 @@ class WaypointPath():
             
         self.total_time = total_time
      
-    def target_position(self, t):
+    def target_position(self, t, interpolate = False):
+        
+        target_state = np.zeros(12)
         
         for waypoint in self.waypoints:
-            if waypoint.total_time > t:
-                return waypoint.position, waypoint.yaw
+            if waypoint.total_time > t:   
+                target_state[0:3] = waypoint.position
+                target_state[8] = waypoint.yaw
+                return target_state
+            
+        target_state[0:3] = self.waypoints[-1].position
+        target_state[8] = self.waypoints[-1].yaw
         
-        return self.waypoints[-1].position, self.waypoints[-1].yaw
+        return target_state
         
     def get_total_time(self):
         return self.total_time
@@ -69,14 +79,18 @@ class SmoothPath():
           
     def target_position(self, t):
         
+        target_state = np.zeros(12)
+        
         if self.timestep != None:
         
             if t > self.discrete_time:
                 self.discrete_time += self.timestep
             t = self.discrete_time
             
-            
-        return [self.f_x(t), self.f_y(t), self.f_z(t)], self.f_yaw(t)
+        target_state[0:3] = [self.f_x(t), self.f_y(t), self.f_z(t)]
+        target_state[8] = self.f_yaw(t)
+        
+        return target_state
 
     def get_total_time(self):
         return self.run_length

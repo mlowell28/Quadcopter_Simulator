@@ -80,11 +80,11 @@ class GUI():
                 index = 0
                 for t in t_span:
     
-                    [x, y, z], yaw = mypath.target_position(t)       
+                    target_state = mypath.target_position(t)       
                     
-                    x_p[index] = x
-                    y_p[index] = y
-                    z_p[index] = z
+                    x_p[index] = target_state[0]
+                    y_p[index] = target_state[1]
+                    z_p[index] = target_state[2]
                     
                     index +=1
     

@@ -2,6 +2,7 @@ import numpy as np
 from numpy.random import default_rng
 import math
 from scipy.integrate import solve_ivp
+import copy
 
 
 # Propeller class which computs thrust from speed, also computes speed needed
@@ -74,6 +75,9 @@ class Quadcopter():
         self.state[6:9] = starting_state['orientation']
         self.state[9:12] = starting_state['angular_rate']
         
+        print("staring state")
+        print(str(starting_state))
+        
         # From Quadrotor Dynamics and Control by Randal Beard
         ixx=((2*self.parameters['weight']*self.parameters['r']**2)/5)+(2*self.parameters['weight']*self.parameters['L']**2)
         iyy=ixx
@@ -102,7 +106,7 @@ class Quadcopter():
         R_x = np.array([[1,0,0],[0,ct,-st],[0,st,ct]])
         R_y = np.array([[cp,0,sp],[0,1,0],[-sp,0,cp]])
         R_z = np.array([[cg,-sg,0],[sg,cg,0],[0,0,1]])
-        R = np.dot(R_z, np.dot( R_y, R_x ))
+        R = np.matmul(R_z, np.matmul( R_y, R_x ))
         return R
 
     def angular_velocity_transformation_matrix(self, angles):
@@ -114,17 +118,15 @@ class Quadcopter():
         matrix = np.array([[1, sp*st/ct, cp* st/ct],
                             [0, cp, -sp],
                             [0, sp*1/ct, cp*1/ct]])
-        
-        
         return matrix 
 
     def wrap_angle(self,val):
-        #print(val)
-        #result = ( val + np.pi) % (2 * np.pi ) - np.pi 
-        #print(result)
         return( ( val + np.pi) % (2 * np.pi ) - np.pi )
 
     def state_dot(self, t, state = [], control_input = []):
+        
+        linear_drag = 0
+        angular_drag = 0
         
         if len(control_input) == 0:
             m1_thrust = self.m1.thrust
@@ -141,8 +143,7 @@ class Quadcopter():
             
         if len(state) == 0:
             
-            state = self.state
-            
+            state = copy.deepcopy(self.state)       
         
         state_dot = np.zeros(12)
         
@@ -179,10 +180,8 @@ class Quadcopter():
         
         state_old = self.state
         self.controller.update(self.t, self.state)
-        state_dot = self.state_dot(self.t, self.state)
+        state_dot = self.state_dot(self.t, self.state) 
         self.state = state_dot*dt + state_old + np.random.default_rng().normal(0, self.sigma, size=(12))
-        #ivp_out = solve_ivp(self.state_dot, [self.t, self.t + dt], self.state)
-        #self.state = ivp_out.y[:,1]
         self.state[6:9] = self.wrap_angle(self.state[6:9])
         self.state[2] = max(0,self.state[2])
         self.t += dt 
