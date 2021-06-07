@@ -27,11 +27,10 @@ class StepInput():
 # and an optional hover time and yaw angle to use while at the waypoint.  
 
 class Waypoint():
-    def __init__(self, position, travel_time, yaw = 0, hover_time = 0):
+    def __init__(self, position, travel_time, yaw = 0):
         self.position = position
         self.yaw = yaw
         self.travel_time = travel_time
-        self.hover_time = hover_time
         
         
 class WaypointPath():
@@ -151,93 +150,135 @@ class SmoothPath():
 # path interval takes a sequences of waypoints assuming no hovering and generates
 # an interpolated path based upon path type. 
    
-# class PathInterval():
-    
-#     def __init__(self, waypoints, starting_time = 0, path_type = 'linear', yaw_offset = math.pi/4):
+class SmoothInterval():
         
-#         self.yaw_offset = yaw_offset
+    def __init__(self, waypoints, starting_time, path_type = 'linear'):
         
-#         self.waypoints = waypoints
-#         self.starting_time = starting_time
-           
-#         x_p = []
-#         y_p = []
-#         z_p = []
-#         t_p = []
+        self.waypoints = waypoints
+        self.path_type = path_type
+        self.starting_time = starting_time
         
-#         self.ending_time = self.starting_time
+        total_time = starting_time
         
-#         for waypoint in waypoints:
+        # associate absolute travel time with waypoints 
+        
+        for waypoint in waypoints:
+            total_time += waypoint.travel_time 
+            waypoint.target_time = total_time
             
-#             [x,y,z] = waypoint.position
-#             x_p.append(x)
-#             y_p.append(y)
-#             z_p.append(z)
-#             self.ending_time = waypoint.t_trv - waypoints[0].t_trv + self.ending_time
-#             t_p.append(self.ending_time)
-            
-#         self.f_x = interpolate.interp1d(t_p,x_p, path_type)
-#         self.f_y = interpolate.interp1d(t_p,y_p, path_type)
-#         self.f_z = interpolate.interp1d(t_p,z_p, path_type)
+        self.ending_time = total_time
+        self.path_travel_time = total_time - starting_time
         
+        x_p = []
+        y_p = []
+        z_p = []
+        t_p = []
         
-#     def get_time_interval(self):
-#         return [self.starting_time, self.ending_time]
-        
-#     def get_interval_duration(self):
-#         return self.ending_time - self.starting_time
-    
-#     def get_total_time(self):
-#         return self.ending_time
-        
-#     def target_position(self, t):
-        
-#         # compute yaw to always point in direction of gradient of path projected onto x/y plane
-        
-#         dt = .1  
-        
-#         if self.ending_time <= t+dt:
-#             return self.waypoints[-1].position, self.waypoints[-1].yaw
-         
-#         grad = [(self.f_x(t+dt) - self.f_x(t))/dt, (self.f_y(t+dt) - self.f_y(t))/dt]
-#         yaw = math.atan2(grad[1],grad[0]) 
-#         yaw = self.wrap_angle(yaw + self.yaw_offset)
-
-#         return [self.f_x(t), self.f_y(t), self.f_z(t)], yaw
-    
-#     def wrap_angle(self,val):
-#         return( ( val + np.pi) % (2 * np.pi ) - np.pi )
-
-    
-
-# class Path():
-#     def __init__(self, waypoints):
-        
-        
-#         self.waypoints = waypoints
-#         self.Path_Intervals = []
-#         interval = []
-        
-#         for waypoint in waypoints:
-            
-        
-#             interval.append(waypoint)
-#             if waypoint.t_hvr != 0:
-#                 self.Path_Intervals.append(path_Interva(interval))
-#                 self.Path_intervals.append()
-#                 se
-         
+        if len(waypoints) >= 2: 
+            for waypoint in waypoints:
                 
+                [x,y,z] = waypoint.position
+                x_p.append(x)
+                y_p.append(y)
+                z_p.append(z)
+                t_p.append(waypoint.target_time)
+                
+            self.f_x = interpolate.interp1d(t_p,x_p, path_type)
+            self.f_y = interpolate.interp1d(t_p,y_p, path_type)
+            self.f_z = interpolate.interp1d(t_p,z_p, path_type)
+            
+        else:
+            self.f_x = lambda t: waypoints[0].position[0]
+            self.f_y = lambda t: waypoints[0].position[1]
+            self.f_z = lambda t: waypoints[0].position[2]
+        
+        
+    def get_time_interval(self):
+        return [self.starting_time, self.ending_time]
+        
+    def get_interval_duration(self):
+        return self.path_travel_time
+    def get_starting_time(self):
+        return self.starting_time
+    def get_ending_time(self):
+        return self.ending_time
+        
+    def target_position(self, t):
+        target_state = np.zeros(12)
+        
+        # compute yaw to always point in direction of gradient of path projected onto x/y plane
+        
+        dt = .1  
+        
+        if self.ending_time <= t+dt:
+            target_state[0:3] = self.waypoints[-1].position
+            target_state[8] = self.waypoints[-1].yaw
+            return target_state
+         
+        grad = [(self.f_x(t+dt) - self.f_x(t))/dt, (self.f_y(t+dt) - self.f_y(t))/dt]
+        target_state[0:3] = [self.f_x(t), self.f_y(t), self.f_z(t)]
+        
+        # as long as quadcopter is not hovering in place find yaw value
+        
+        if grad[1] != 0 or grad[0] != 0:
+            yaw = math.atan2(grad[1],grad[0]) 
+            yaw = self.wrap_angle(yaw)
+        
+        # if it is hovering use target yaw value for waypoint
+        else:
+            yaw = self.waypoints[0].position
+        
+        target_state[8] = yaw
+        return target_state
+    
+    def wrap_angle(self,val):
+        return( ( val + np.pi) % (2 * np.pi ) - np.pi )
 
+    
+
+class Path():
+    def __init__(self, waypoints, path_type = 'quadratic'):
         
-#     def target_position(self, t):
         
-#         for smooth_path in self.smooth_paths:
-#             t_l, t_h = smooth_path.get_time_interval()
+        self.waypoints = waypoints
+        self.waypoint_intervals = []
+        self.path_intervals = []
+        self.path_type = path_type
+        
+        interval = []
+        
+        waypoint_index = 0
+        for waypoint_index in range(len(waypoints)):
+            if waypoint_index == 0:
+                interval.append(waypoints[waypoint_index])
+            elif all(waypoints[waypoint_index-1].position != waypoints[waypoint_index]):
+                interval.append(waypoints[waypoint_index])
+            else:
+                self.waypoint_intervals.append(interval)
+                interval = []
+                
+        self.waypoint_intervals.append(interval)
+        waypoint_intervals_index = 0
+        
+        for waypoint_intervals_index in range(len(self.waypoint_intervals)):
+            if waypoint_intervals_index == 0:
+                path_interval = SmoothInterval(self.waypoint_intervals[waypoint_intervals_index],0, path_type)
+                self.path_intervals.append(path_interval)
+            else:
+                path_interval = SmoothInterval(self.waypoint_intervals[waypoint_intervals_index],self.path_intervals[-1].get_ending_time, path_type)
+                self.path_intervals.append(path_interval)
+                
             
-#             if t_l <= t < t_h:
-#                 return smooth_path.target_position(self, t)
+    def target_position(self, t):
+        for path in self.path_intervals:
+            if path.get_starting_time() <= t <= path.get_ending_time():
+                return path.target_position(t)
             
+    def get_total_time(self):
+        return self.path_intervals[-1].get_ending_time()
+    
+        
+        
         
     
 
